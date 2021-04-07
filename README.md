@@ -1,29 +1,8 @@
-# displaCy.py
+# conll displacy
 
-displaCy.py is a NLP visualizer. It's a Python port of [displaCy.js](https://github.com/explosion/displacy).
+displacy displaCy.py is a NLP visualizer. It's a Python port of [displaCy.js](https://github.com/explosion/displacy).
 It can be used to visualize POS relationships detected using [spaCy](https://spacy.io)'s syntactic parser.
 
-## Using displacy.py
-
-```python
-from displacy import Displacy
-import spacy
-
-nlp = spacy.load('en')
-doc = nlp('Visualise spaCy\'s guess at the syntactic structure of a sentence. '
-          'Arrows point from children to heads, and are labelled by their relation type.')
-
-Displacy.collapse_doc(doc)
-
-d = Displacy({'wordDistance': 130,
-              'arcDistance': 40,
-              'wordSpacing': 30,
-              'arrowSpacing': 10})
-print(d.render(Displacy.words_and_arcs(doc)))
-```
-
-To use with libraries other than spaCy, see the `Displacy.words_and_arcs()` method
-on what input the `render()` method expects.
 
 The following settings are available:
 
@@ -43,10 +22,9 @@ The following settings are available:
 
 ## Changing the theme and colours
 
-You can find the current theme settings in [`/assets/css/displacy.css`](assets/css/displacy.css).
-All elements contained in the SVG output come with tags and data attributes and can be styled flexibly using CSS.
-By default, the `currentColor` of the element is used for colouring,meaning only need to change the `color` property
-in CSS.
+You can find the current theme settings in [`app/static/displacy.css`](app/static/displacy.css). All elements contained
+in the SVG output come with tags and data attributes and can be styled flexibly using CSS. By default,
+the `currentColor` of the element is used for colouring,meaning only need to change the `color` property in CSS.
 
 The following classes are available:
 

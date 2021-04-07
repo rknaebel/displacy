@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>displacy</title>
+    <meta charset="utf-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width,initial-scale=1.0" name="viewport">
+    <link href="https://www.dwds.de/favicon.ico" rel="icon">
+    <!-- CSS only -->
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/displacy.css" rel="stylesheet">
+    <!-- JS, Popper.js, and jQuery -->
+    <script src="/static/jquery-3.5.1.slim.min.js"></script>
+    <script src="/static/popper.min.js"></script>
+    <script src="/static/bootstrap.js"></script>
+    <script src="/static/vue.js"></script>
+    <script src="/static/axios.min.js"></script>
+</head>
+<body>
+<div class="container" id="app">
+    <div class="d-block">
+        <h2>Documents</h2>
+        <div class="search-wrapper panel-heading">
+            <input class="form-control" placeholder="Search" type="text" v-model="searchQuery"/>
+        </div>
+        <div class="list-group"
+             style="max-height: 300px;margin-bottom: 10px;overflow:scroll;-webkit-overflow-scrolling: touch;"
+             v-if="resultQuery.length">
+            <a class="list-group-item" href="#"
+               v-bind:class="{ 'active' : isSelected(item) }"
+               v-for="item in resultQuery"
+               v-on:click="selectDocument(item)">${ item.corpus } - ${ item.docId }</a>
+        </div>
+    </div>
+    <div>
+        <div v-for="sent in sentences">
+            <div style="overflow-x: auto;" v-html="sent.svg"></div>
+            <div>${ sent.txt }</div>
+            <hr>
+        </div>
+    </div>
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        delimiters: ['${', '}'],
+        data: {
+            sentences: "",
+            docId: "",
+            documents: [],
+            searchQuery: "",
+        },
+        methods: {
+            selectDocument(v) {
+                console.log(v);
+                this.docId = v;
+                axios.get('/api/display/', {params: {corpus: v.corpus, doc_id: v.docId}}).then((res) => {
+                    this.sentences = res.data;
+                }).catch((error) => {
+                    console.error(error);
+                });
+            },
+            isSelected(i) {
+                console.log(i, this.docId);
+                return i === this.docId
+            }
+        },
+        created() {
+            axios.get('/api/docs').then((res) => {
+                this.documents = res.data;
+            })
+        },
+        computed: {
+            resultQuery() {
+                if (this.searchQuery) {
+                    return this.documents.filter((item) => {
+                        return item.docId.toLowerCase().includes(this.searchQuery.toLowerCase())
+                    })
+                } else {
+                    return this.documents;
+                }
+            },
+        }
+
+    })
+</script>
+</body>
+</html>
