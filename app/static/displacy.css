@@ -10,7 +10,7 @@
 
 .displacy-label {
     font: 0.85rem "Input Mono Compressed", Consolas, "Andale Mono", Menlo, Monaco, Courier, monospace;
-    color: #87908a;
+    /*color: #87908a;*/
 }
 
 .displacy-arc {

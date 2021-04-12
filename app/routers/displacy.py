@@ -41,6 +41,8 @@ class Displacy:
         for word in sent:
             word_id = int(word['id'])
             head_id = int(word['head'])
+            if word['deprel'] == '--':
+                continue
             if word_id < head_id:
                 arcs.append({'start': word_id - index_offset,
                              'end': head_id - index_offset,
