@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>displacy</title>
+    <meta charset="utf-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width,initial-scale=1.0" name="viewport">
+    <link href="https://www.dwds.de/favicon.ico" rel="icon">
+    <!-- CSS only -->
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/displacy.css" rel="stylesheet">
+    <!-- JS, Popper.js, and jQuery -->
+    <script src="/static/jquery-3.5.1.slim.min.js"></script>
+    <script src="/static/popper.min.js"></script>
+    <script src="/static/bootstrap.js"></script>
+    <script src="/static/vue.js"></script>
+    <script src="/static/axios.min.js"></script>
+</head>
+<body>
+<div class="container" id="app">
+    <div class="d-block">
+        <h2>Documents</h2>
+        <div class="search-wrapper panel-heading">
+            <div class="border input-group mb-3">
+                <legend style="padding: 10px 10px;">Dependenzen</legend>
+                <div class="form-check form-check-inline" v-for="rel in deprelOptions">
+                    <input :id="rel" :value="rel" class="form-check-input" type="checkbox" v-model="relationSelection">
+                    <label :id="rel" class="form-check-label">${ rel }</label>
+                </div>
+            </div>
+            <div class="border input-group mb-3">
+                <legend style="padding: 10px 10px;">TagSet</legend>
+                <div class="form-check form-check-inline" v-for="tag in tagOptions">
+                    <input :id="tag" :value="tag" class="form-check-input" type="checkbox" v-model="tagSelection">
+                    <label :id="tag" class="form-check-label">${ tag }</label>
+                </div>
+            </div>
+            <div class="btn-group" role="group">
+                <button class="btn btn-success btn-sm" type="button"
+                        v-on:click="handleQuery">
+                    Suchen
+                </button>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div v-for="sent in sentences">
+            <div style="overflow-x: auto;" v-html="sent.svg"></div>
+            <div>${ sent.txt }</div>
+            <hr>
+        </div>
+    </div>
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        delimiters: ['${', '}'],
+        data: {
+            sentences: "",
+            docId: "",
+            relationSelection: [],
+            tagSelection: [],
+            tagOptions: [],
+            deprelOptions: [],
+        },
+        methods: {
+            handleQuery() {
+                let tags = this.tagSelection.map(n => `tags=${n}`).join('&')
+                let rels = this.relationSelection.map(n => `relations=${n}`).join('&')
+                axios.get(`/api/display/rel?${rels}&${tags}`).then((res) => {
+                    this.sentences = res.data;
+                }).catch((error) => {
+                    console.error(error);
+                });
+
+            }
+        },
+        created() {
+            axios.get('/api/display/info').then(res => {
+                this.tagOptions = res.data.tags;
+                this.deprelOptions = res.data.deprels;
+            }).catch(error => {
+                console.error(error)
+            });
+        }
+    })
+</script>
+</body>
+</html>

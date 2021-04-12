@@ -54,7 +54,7 @@
             selectDocument(v) {
                 console.log(v);
                 this.docId = v;
-                axios.get('/api/display/', {params: {corpus: v.corpus, doc_id: v.docId}}).then((res) => {
+                axios.get('/api/display/doc', {params: {corpus: v.corpus, doc_id: v.docId}}).then((res) => {
                     this.sentences = res.data;
                 }).catch((error) => {
                     console.error(error);

@@ -1,20 +1,12 @@
-import bz2
-import glob
-import logging
-import os
 import xml.etree.cElementTree as ETree
+from typing import Optional, List
 
-import conllu
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
-from app.utils import get_args
-
-logger = logging.getLogger(__name__)
+from app.utils import get_args, DOCS, SENTS
 
 router = APIRouter()
 args = get_args()
-
-DOCS = {}
 
 
 class Displacy:
@@ -259,43 +251,12 @@ class Displacy:
         return el
 
 
-def get_conll_reader(fh):
-    conll_sentences = conllu.parse_incr(fh, fields=conllu.parser.DEFAULT_FIELDS)
-    doc = []
-    for sent in conll_sentences:
-        if "DDC:meta.file_" in sent.metadata:
-            if doc:
-                yield doc
-            doc = []
-        doc.append(sent)
-    yield doc
-
-
-def load_documents(corpus, corpus_path):
-    global DOCS
-    for doc_i, doc in enumerate(get_conll_reader(corpus_path)):
-        if args.limit and doc_i > args.limit:
-            return
-        meta = doc[0].metadata
-        DOCS[(corpus, meta["DDC:meta.basename"])] = doc
-
-
-@router.on_event("startup")
-async def startup_event():
-    for corpus_path in glob.glob(os.path.join(args.data, '*.conll.bz2')):
-        corpus = os.path.basename(corpus_path).split('.')[0]
-        with bz2.open(corpus_path, 'rt') as fh:
-            load_documents(corpus, fh)
-        logger.info(f'Loaded corpus {corpus_path}')
-        logger.info(f'Loaded #documents: {len(DOCS)}')
-
-
 @router.get('/docs')
 async def get_docs():
     return [{'corpus': corpus, 'docId': doc_id} for corpus, doc_id in DOCS.keys()]
 
 
-@router.get('/display')
+@router.get('/display/doc')
 async def visualize_tree(corpus: str, doc_id: str):
     d = Displacy()
     r = []
@@ -308,3 +269,37 @@ async def visualize_tree(corpus: str, doc_id: str):
             'conll': s.serialize(),
         })
     return r
+
+
+@router.get('/display/rel')
+async def visualize_tree_filtered(tags: Optional[List[str]] = Query(None),
+                                  relations: Optional[List[str]] = Query(None),
+                                  limit: int = 20):
+    tags = set(tags or [])
+    relations = set(relations or [])
+    d = Displacy()
+    r = []
+    for s_i, s in enumerate(SENTS):
+        if len(r) > limit:
+            break
+        upos = {w['upos'] for w in s}
+        if len(tags & upos) != len(tags):
+            continue
+        deprels = {w['deprel'] for w in s}
+        if len(relations & deprels) != len(relations):
+            continue
+        word_and_arcs = Displacy.words_and_arcs(s)
+        r.append({
+            'txt': ' '.join(w['form'] for w in s),
+            'svg': d.render(word_and_arcs, {'index_base': s_i}),
+            'conll': s.serialize(),
+        })
+    return r
+
+
+@router.get('/display/info')
+async def get_info():
+    return {
+        'tags': sorted({t['upos'] for s in SENTS for t in s}),
+        'deprels': sorted({t['deprel'] for s in SENTS for t in s}),
+    }
