@@ -7,14 +7,14 @@
     <meta content="width=device-width,initial-scale=1.0" name="viewport">
     <link href="https://www.dwds.de/favicon.ico" rel="icon">
     <!-- CSS only -->
-    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/displacy.css" rel="stylesheet">
     <!-- JS, Popper.js, and jQuery -->
-    <script src="/static/jquery-3.5.1.slim.min.js"></script>
-    <script src="/static/popper.min.js"></script>
-    <script src="/static/bootstrap.js"></script>
-    <script src="/static/vue.js"></script>
-    <script src="/static/axios.min.js"></script>
+    <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
+    <script src="/static/js/popper.min.js"></script>
+    <script src="/static/js/bootstrap.js"></script>
+    <script src="/static/js/vue.js"></script>
+    <script src="/static/js/axios.min.js"></script>
 </head>
 <body>
 <div class="container" id="app">
@@ -40,14 +40,32 @@
                         v-on:click="handleQuery">
                     Suchen
                 </button>
+                <button class="btn btn-danger btn-sm" type="button"
+                        v-on:click="selectPage(-1)">
+                    Vorherige Seite
+                </button>
+                <button class="btn btn-danger btn-sm" type="button"
+                        v-on:click="selectPage(1)">
+                    Nächste Seite
+                </button>
             </div>
         </div>
     </div>
-    <div>
+    <div v-if="sentences">
         <div v-for="sent in sentences">
             <div style="overflow-x: auto;" v-html="sent.svg"></div>
             <div>${ sent.txt }</div>
             <hr>
+        </div>
+        <div class="btn-group" role="group">
+            <button class="btn btn-danger btn-sm" type="button"
+                    v-on:click="selectPage(-1)">
+                Vorherige Seite
+            </button>
+            <button class="btn btn-danger btn-sm" type="button"
+                    v-on:click="selectPage(1)">
+                Nächste Seite
+            </button>
         </div>
     </div>
 </div>
@@ -62,12 +80,25 @@
             tagSelection: [],
             tagOptions: [],
             deprelOptions: [],
+            page: 0,
         },
         methods: {
+            selectPage(i) {
+                this.page += i;
+                if (this.page < 0) {
+                    this.page = 0;
+                }
+                this.handleQuery();
+            },
             handleQuery() {
                 let tags = this.tagSelection.map(n => `tags=${n}`).join('&')
                 let rels = this.relationSelection.map(n => `relations=${n}`).join('&')
-                axios.get(`/api/display/rel?${rels}&${tags}`).then((res) => {
+                axios.get(`/api/display/rel?${rels}&${tags}`, {
+                    params: {
+                        page: this.page,
+                        limit: 10,
+                    }
+                }).then((res) => {
                     this.sentences = res.data;
                 }).catch((error) => {
                     console.error(error);
@@ -76,7 +107,7 @@
             }
         },
         created() {
-            axios.get('/api/display/info').then(res => {
+            axios.get('/api/docs/info').then(res => {
                 this.tagOptions = res.data.tags;
                 this.deprelOptions = res.data.deprels;
             }).catch(error => {

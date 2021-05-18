@@ -9,8 +9,10 @@
 }
 
 .displacy-label {
-    font: 0.85rem "Input Mono Compressed", Consolas, "Andale Mono", Menlo, Monaco, Courier, monospace;
+    font: 0.85em "Input Mono Compressed", Consolas, "Andale Mono", Menlo, Monaco, Courier, monospace;
     /*color: #87908a;*/
+    font-weight: bold;
+    letter-spacing: -0.1em;
 }
 
 .displacy-arc {
