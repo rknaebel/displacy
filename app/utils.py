@@ -1,12 +1,10 @@
-import bz2
-import glob
 import logging
-import os
-import random
 from argparse import ArgumentParser
+from typing import List
 
 import conllu
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 parser = ArgumentParser()
 parser.add_argument("--hostname", default="localhost", type=str, help="REST API hostname")
@@ -18,8 +16,6 @@ parser.add_argument("--limit", default=0, type=int, help="Limits sentences per c
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-DOCS = {}
-SENTS = []
 
 
 def get_args():
@@ -38,24 +34,14 @@ def get_conll_reader(fh):
     yield doc
 
 
-def load_documents(corpus, corpus_path, limit=0):
-    global DOCS, SENTS
-    for doc_i, doc in enumerate(get_conll_reader(corpus_path)):
-        if limit and doc_i > limit:
-            return
-        meta = doc[0].metadata
-        DOCS[(corpus, meta["DDC:meta.basename"])] = doc
-        SENTS.extend(doc)
+class Token(BaseModel):
+    id: int
+    form: str
+    upos: str
+    xpos: str = ""
+    head: int
+    deprel: str
 
 
-@router.on_event("startup")
-async def startup_event():
-    global SENTS
-    args = get_args()
-    for corpus_path in glob.glob(os.path.join(args.data, '*.conll.bz2')):
-        corpus = os.path.basename(corpus_path).split('.')[0]
-        with bz2.open(corpus_path, 'rt') as fh:
-            load_documents(corpus, fh, args.limit)
-        logger.info(f'Loaded corpus {corpus_path}')
-        logger.info(f'Loaded #documents: {len(DOCS)}')
-    random.shuffle(SENTS)
+class Sentence(BaseModel):
+    tokens: List[Token]

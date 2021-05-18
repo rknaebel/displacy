@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>displacy</title>
+    <meta charset="utf-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width,initial-scale=1.0" name="viewport">
+    <link href="https://www.dwds.de/favicon.ico" rel="icon">
+    <!-- CSS only -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/displacy.css" rel="stylesheet">
+    <!-- JS, Popper.js, and jQuery -->
+    <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
+    <script src="/static/js/popper.min.js"></script>
+    <script src="/static/js/bootstrap.js"></script>
+    <script src="/static/js/vue.js"></script>
+    <script src="/static/js/axios.min.js"></script>
+</head>
+<body>
+<div class="container" id="app">
+    <h1>Bewertung</h1>
+    <div v-if="sentence">
+        <div class="row">
+            <div class="mx-auto">
+                <div v-html="sentence.svg"></div>
+                <div>${ sentence.txt }</div>
+                <hr>
+            </div>
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" type="button"
+                v-on:click="handleSubmit()">
+            Alles OK
+        </button>
+        <button class="btn btn-danger btn-lg btn-block" type="button"
+                v-on:click="handleSubmit(1)">
+            Falsche Kategory1
+        </button>
+        <button class="btn btn-danger btn-lg btn-block" type="button"
+                v-on:click="handleSubmit(1)">
+            Falsche Kategory2
+        </button>
+        <button class="btn btn-danger btn-lg btn-block" type="button"
+                v-on:click="handleSubmit(1)">
+            Falsche Kategory3
+        </button>
+    </div>
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        delimiters: ['${', '}'],
+        data: {
+            sentence: "",
+            vote: "",
+        },
+        methods: {
+            handleSubmit() {
+                axios.get('/api/display/sentence/random').then(res => {
+                    this.sentence = res.data;
+                }).catch(error => {
+                    console.error(error)
+                });
+            },
+        },
+        created() {
+            axios.get('/api/display/sentence/random').then(res => {
+                this.sentence = res.data;
+            }).catch(error => {
+                console.error(error)
+            });
+        }
+    })
+</script>
+</body>
+</html>

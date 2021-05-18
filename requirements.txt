@@ -4,3 +4,5 @@ requests
 aiofiles
 jinja2
 conllu==3.1.1
+trankit==1.0.1
+stanza==1.2

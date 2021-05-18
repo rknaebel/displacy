@@ -5,8 +5,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app import utils
 from app.routers import displacy
+from app.routers import docs
+from app.routers import tools
 from app.utils import get_args
 
 args = get_args()
@@ -17,13 +18,18 @@ templates = Jinja2Templates(directory="app/pages")
 
 app.include_router(
     displacy.router,
-    prefix="/api",
+    prefix="/api/display",
     tags=["display"]
 )
 app.include_router(
-    utils.router,
-    prefix="",
-    tags=["display"]
+    docs.router,
+    prefix="/api/docs",
+    tags=["docs"]
+)
+app.include_router(
+    tools.router,
+    prefix="/api/tools",
+    tags=["tools"]
 )
 
 
@@ -36,6 +42,16 @@ async def main(request: Request):
 @app.get("/relations", tags=["pages"], response_class=HTMLResponse)
 async def main(request: Request):
     return templates.TemplateResponse("relation_view.html", {"request": request})
+
+
+@app.get("/vote", tags=["pages"], response_class=HTMLResponse)
+async def main(request: Request):
+    return templates.TemplateResponse("voting.html", {"request": request})
+
+
+@app.get("/vote2", tags=["pages"], response_class=HTMLResponse)
+async def main(request: Request):
+    return templates.TemplateResponse("voting2.html", {"request": request})
 
 
 if __name__ == '__main__':

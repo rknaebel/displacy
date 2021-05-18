@@ -1,9 +1,11 @@
+import random
 import xml.etree.cElementTree as ETree
 from typing import Optional, List
 
 from fastapi import APIRouter, Query
 
-from app.utils import get_args, DOCS, SENTS
+from app.routers.docs import DOCS, SENTS
+from app.utils import get_args, Sentence
 
 router = APIRouter()
 args = get_args()
@@ -33,7 +35,7 @@ class Displacy:
         for word in sent:
             word_id = int(word['id'])
             head_id = int(word['head'])
-            if word['deprel'] == '--':
+            if word['deprel'] in ['--', 'punct']:
                 continue
             if word_id < head_id:
                 arcs.append({'start': word_id - index_offset,
@@ -161,7 +163,7 @@ class Displacy:
                    - self.arrow_spacing * (self.highest_level - level) / 4
 
         curve = self.offset_y - level * self.arc_distance
-        if curve == 0 and self.highest_level >= 5:
+        if curve == 0 and self.highest_level >= 7:
             curve = -self.word_distance
 
         aw2 = self.arrow_width - 2
@@ -169,7 +171,7 @@ class Displacy:
         return self._el('g', {
             'classnames': ['displacy-arrow'],
             'attributes': [
-                              ['data-dir', dir],
+                              ['data-dir', direction],
                               ['data-label', label],
                           ] + self.get_data_attributes(data),
             'children': [
@@ -192,7 +194,7 @@ class Displacy:
                 }),
                 self._el('text', {
                     'attributes': [
-                        ['dy', '1em']
+                        ['dy', '-0.25em']
                     ],
                     'children': [
                         self._el('textPath', {
@@ -242,7 +244,6 @@ class Displacy:
             el.text = options['text']
         if 'id' in options:
             attributes.append(['id', options['id']])
-
         for attribute in attributes:
             key, value = attribute
             el.set(key, str(value))
@@ -251,36 +252,48 @@ class Displacy:
         return el
 
 
-@router.get('/docs')
-async def get_docs():
-    return [{'corpus': corpus, 'docId': doc_id} for corpus, doc_id in DOCS.keys()]
+def get_sentence_svg(sent, index_base=0):
+    d = Displacy(options={
+        'wordDistance': 120,
+    })
+    word_and_arcs = Displacy.words_and_arcs(sent)
+    return {
+        'txt': ' '.join(w['form'] for w in sent),
+        'svg': d.render(word_and_arcs, {'index_base': index_base}),
+    }
 
 
-@router.get('/display/doc')
+@router.post('/')
+async def get_visualization(sent: Sentence, index_base: int = 0):
+    return get_sentence_svg(sent.dict()['tokens'], index_base=index_base)
+
+
+@router.get('/sentence/random')
+async def get_random_sentence_vis():
+    s = random.choice(SENTS)
+    return get_sentence_svg(s)
+
+
+@router.get('/doc')
 async def visualize_tree(corpus: str, doc_id: str):
-    d = Displacy()
     r = []
     doc = DOCS.get((corpus, doc_id), [])
     for s_i, s in enumerate(doc):
-        word_and_arcs = Displacy.words_and_arcs(s)
-        r.append({
-            'txt': ' '.join(w['form'] for w in s),
-            'svg': d.render(word_and_arcs, {'index_base': s_i}),
-            'conll': s.serialize(),
-        })
+        r.append(get_sentence_svg(s, s_i))
     return r
 
 
-@router.get('/display/rel')
+@router.get('/rel')
 async def visualize_tree_filtered(tags: Optional[List[str]] = Query(None),
                                   relations: Optional[List[str]] = Query(None),
-                                  limit: int = 20):
+                                  limit: int = 20,
+                                  page: int = 0):
     tags = set(tags or [])
     relations = set(relations or [])
-    d = Displacy()
     r = []
+    skip_sents = limit * max(0, page)
     for s_i, s in enumerate(SENTS):
-        if len(r) > limit:
+        if len(r) >= limit:
             break
         upos = {w['upos'] for w in s}
         if len(tags & upos) != len(tags):
@@ -288,18 +301,8 @@ async def visualize_tree_filtered(tags: Optional[List[str]] = Query(None),
         deprels = {w['deprel'] for w in s}
         if len(relations & deprels) != len(relations):
             continue
-        word_and_arcs = Displacy.words_and_arcs(s)
-        r.append({
-            'txt': ' '.join(w['form'] for w in s),
-            'svg': d.render(word_and_arcs, {'index_base': s_i}),
-            'conll': s.serialize(),
-        })
+        if skip_sents > 0:
+            skip_sents -= 1
+            continue
+        r.append(get_sentence_svg(s, s_i))
     return r
-
-
-@router.get('/display/info')
-async def get_info():
-    return {
-        'tags': sorted({t['upos'] for s in SENTS for t in s}),
-        'deprels': sorted({t['deprel'] for s in SENTS for t in s}),
-    }

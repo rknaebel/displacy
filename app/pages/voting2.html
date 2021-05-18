@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>displacy</title>
+    <meta charset="utf-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width,initial-scale=1.0" name="viewport">
+    <link href="https://www.dwds.de/favicon.ico" rel="icon">
+    <!-- CSS only -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/displacy.css" rel="stylesheet">
+    <!-- JS, Popper.js, and jQuery -->
+    <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
+    <script src="/static/js/popper.min.js"></script>
+    <script src="/static/js/bootstrap.js"></script>
+    <script src="/static/js/vue.js"></script>
+    <script src="/static/js/axios.min.js"></script>
+</head>
+<body>
+<div class="container" id="app">
+    <h1>Bewertung</h1>
+    <div class="row" v-if="imsnpars.tokens">
+        <div class="col">
+            <b>${ text }</b>
+        </div>
+    </div>
+    <div class="row" v-if="imsnpars.tokens">
+        <div v-html="imsnpars.svg"></div>
+        <div>${ imsnpars.text }</div>
+        <hr>
+    </div>
+    <div class="row">
+        <button class="btn btn-primary btn-block" type="button"
+                v-on:click="handleSubmit()">
+            Auswählen
+        </button>
+    </div>
+    <div class="row" v-if="trankit.tokens">
+        <div v-html="trankit.svg"></div>
+        <div>${ trankit.text }</div>
+        <hr>
+    </div>
+    <div class="row">
+        <button class="btn btn-primary btn-block" type="button"
+                v-on:click="handleSubmit()">
+            Auswählen
+        </button>
+    </div>
+    <div class="row" v-if="stanza.tokens">
+        <div v-html="stanza.svg"></div>
+        <div>${ stanza.text }</div>
+        <hr>
+    </div>
+    <div class="row">
+        <button class="btn btn-primary btn-block" type="button"
+                v-on:click="handleSubmit()">
+            Auswählen
+        </button>
+    </div>
+    <div class="row">
+        <button class="btn btn-danger btn-block" type="button"
+                v-on:click="handleSubmit()">
+            Skip
+        </button>
+    </div>
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        delimiters: ['${', '}'],
+        data: {
+            imsnpars: {
+                tokens: [],
+                text: "",
+                svg: "",
+            },
+            stanza: {
+                tokens: [],
+                text: "",
+                svg: "",
+            },
+            trankit: {
+                tokens: [],
+                text: "",
+                svg: "",
+            },
+        },
+        methods: {
+            handleSubmit() {
+                axios.get('/api/docs/sentence/random').then(res => {
+                    this.imsnpars.tokens = res.data;
+                    axios.post('/api/display', {
+                        tokens: this.imsnpars.tokens
+                    }).then(res => {
+                        this.imsnpars.text = res.data.text;
+                        this.imsnpars.svg = res.data.svg;
+                    }).catch(error => {
+                        console.error(error)
+                    });
+                    axios.post('/api/tools', {
+                        tokens: this.imsnpars.tokens,
+                        parser: "stanza",
+                    }).then(toolRes => {
+                        this.stanza.tokens = toolRes.data;
+                        console.log(this.stanza.tokens);
+                        axios.post('/api/display', {
+                            tokens: this.stanza.tokens
+                        }, {params: {index_base: 1}}).then(displayRes => {
+                            this.stanza.text = displayRes.data.text;
+                            this.stanza.svg = displayRes.data.svg;
+                        }).catch(error => {
+                            console.error(error)
+                        });
+                    }).catch(error => {
+                        console.error(error)
+                    });
+                    axios.post('/api/tools', {
+                        tokens: this.imsnpars.tokens,
+                        parser: "trankit",
+                    }).then(toolRes => {
+                        console.log(toolRes.data);
+                        this.trankit.tokens = toolRes.data;
+                        axios.post('/api/display', {
+                            tokens: this.trankit.tokens
+                        }, {params: {index_base: 2}}).then(displayRes => {
+                            this.trankit.text = displayRes.data.text;
+                            this.trankit.svg = displayRes.data.svg;
+                        }).catch(error => {
+                            console.error(error)
+                        });
+                    }).catch(error => {
+                        console.error(error)
+                    });
+                }).catch(error => {
+                    console.error(error)
+                });
+            },
+        },
+        computed: {
+            text: function () {
+                return this.imsnpars.tokens.map(t => t.form).join(' ')
+            }
+        },
+        created() {
+            this.handleSubmit();
+        }
+    })
+</script>
+</body>
+</html>
